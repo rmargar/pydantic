@@ -19,6 +19,7 @@ from typing import (
     NewType,
     Optional,
     Pattern,
+    Sequence,
     Set,
     Tuple,
     Type,
@@ -3742,3 +3743,19 @@ def test_model_with_schema_extra_callable_instance_method():
                     assert model_class is Model
 
         assert Model.model_json_schema() == {'title': 'Model', 'type': 'override'}
+
+
+def test_sequence_schema():
+    class Model(BaseModel):
+        int_sequence: Sequence[int]
+        int_list: list[int]
+
+    assert Model.model_json_schema() == {
+        'properties': {
+            'int_list': {'items': {'type': 'integer'}, 'title': 'Int List', 'type': 'array'},
+            'int_sequence': {'items': {'type': 'integer'}, 'title': 'Int Sequence', 'type': 'array'},
+        },
+        'required': ['int_sequence', 'int_list'],
+        'title': 'Model',
+        'type': 'object',
+    }
