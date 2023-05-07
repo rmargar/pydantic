@@ -3759,3 +3759,23 @@ def test_sequence_schema():
         'title': 'Model',
         'type': 'object',
     }
+
+
+@pytest.mark.parametrize(('sequence_type',), [pytest.param(list), pytest.param(Sequence)])
+def test_sequences_int_json_schema(sequence_type):
+    class Model(BaseModel):
+        int_seq: sequence_type[int]
+
+    assert Model.model_json_schema() == {
+        'title': 'Model',
+        'type': 'object',
+        'properties': {
+            'int_seq': {
+                'title': 'Int Seq',
+                'type': 'array',
+                'items': {'type': 'integer'},
+            },
+        },
+        'required': ['int_seq'],
+    }
+    assert Model.model_validate_json('{"int_seq": [1, 2, 3]}')
