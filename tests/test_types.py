@@ -1,3 +1,4 @@
+import collections
 import itertools
 import json
 import math
@@ -32,7 +33,7 @@ from uuid import UUID
 
 import annotated_types
 import pytest
-from dirty_equals import HasRepr, IsStr
+from dirty_equals import HasRepr, IsInstance, IsStr
 from pydantic_core import CoreSchema, PydanticCustomError, SchemaError, core_schema
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated, Literal, TypedDict, get_args
@@ -1726,6 +1727,72 @@ def test_ordered_dict():
     assert exc_info.value.errors(include_url=False) == [
         {'type': 'dict_type', 'loc': ('v',), 'msg': 'Input should be a valid dictionary', 'input': [1, 2, 3]}
     ]
+
+
+@pytest.mark.parametrize('field_type', [typing.OrderedDict, collections.OrderedDict])
+def test_ordered_dict_from_ordered_dict(field_type):
+    class Model(BaseModel):
+        od_field: field_type
+
+    od_value = collections.OrderedDict([('a', 1), ('b', 2)])
+
+    m = Model(od_field=od_value)
+
+    assert m.od_field == IsInstance(collections.OrderedDict)
+    assert m.od_field == od_value
+    assert m.od_field is od_value
+
+    assert m.model_json_schema() == {
+        'properties': {'od_field': {'title': 'Od Field', 'type': 'object'}},
+        'required': ['od_field'],
+        'title': 'Model',
+        'type': 'object',
+    }
+
+
+def test_ordered_dict_from_ordered_dict_typed():
+    class Model(BaseModel):
+        od_field: typing.OrderedDict[str, int]
+
+    od_value = collections.OrderedDict([('a', 1), ('b', 2)])
+
+    m = Model(od_field=od_value)
+
+    assert m.od_field == IsInstance(collections.OrderedDict)
+    assert m.od_field == od_value
+
+    assert m.model_json_schema() == {
+        'properties': {
+            'od_field': {
+                'additionalProperties': {'type': 'integer'},
+                'title': 'Od Field',
+                'type': 'object',
+            }
+        },
+        'required': ['od_field'],
+        'title': 'Model',
+        'type': 'object',
+    }
+
+
+@pytest.mark.parametrize('field_type', [typing.OrderedDict, collections.OrderedDict])
+def test_ordered_dict_from_dict(field_type):
+    class Model(BaseModel):
+        od_field: field_type
+
+    od_value = {'a': 1, 'b': 2}
+
+    m = Model(od_field=od_value)
+
+    assert m.od_field == IsInstance(collections.OrderedDict)
+    assert m.od_field == collections.OrderedDict(od_value)
+
+    assert m.model_json_schema() == {
+        'properties': {'od_field': {'title': 'Od Field', 'type': 'object'}},
+        'required': ['od_field'],
+        'title': 'Model',
+        'type': 'object',
+    }
 
 
 @pytest.mark.parametrize(

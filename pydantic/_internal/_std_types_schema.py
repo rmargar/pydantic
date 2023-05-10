@@ -647,21 +647,13 @@ def ordered_dict_schema(schema_generator: GenerateSchema, obj: Any) -> core_sche
         )
         return core_schema.lax_or_strict_schema(
             lax_schema=core_schema.no_info_after_validator_function(
-                _validators.ordered_dict_typed_validator,
-                core_schema.dict_schema(
-                    schema_generator.generate_schema(keys_arg), schema_generator.generate_schema(values_arg)
-                ),
+                _validators.ordered_dict_typed_validator, inner_schema
             ),
             strict_schema=core_schema.json_or_python_schema(
                 json_schema=core_schema.no_info_after_validator_function(
                     OrderedDict, core_schema.dict_schema(inner_schema)
                 ),
-                python_schema=core_schema.no_info_after_validator_function(
-                    OrderedDict,
-                    core_schema.chain_schema(
-                        [core_schema.is_instance_schema(OrderedDict), core_schema.dict_schema(inner_schema)]
-                    ),
-                ),
+                python_schema=core_schema.is_instance_schema(OrderedDict),
             ),
         )
 

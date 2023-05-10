@@ -413,15 +413,8 @@ class GenerateSchema:
             return self._pattern_schema(obj)
         elif obj is collections.abc.Hashable or obj is typing.Hashable:
             return self._hashable_schema()
-        elif isinstance(obj, type):
-            if obj is dict:
-                return self._dict_schema(obj)
-            if issubclass(obj, dict):
-                # TODO: We would need to handle generic subclasses of certain typing dict subclasses here
-                #   This includes subclasses of typing.Counter, typing.DefaultDict, and typing.OrderedDict
-                #   Note also that we may do a better job of handling typing.DefaultDict by inspecting its arguments.
-                return self._dict_subclass_schema(obj)
-            # probably need to take care of other subclasses here
+        elif obj is dict:
+            return self._dict_schema(obj)
         elif isinstance(obj, typing.TypeVar):
             return self._unsubstituted_typevar_schema(obj)
         elif is_finalvar(obj):
@@ -450,6 +443,8 @@ class GenerateSchema:
 
         origin = get_origin(obj)
         if origin is None:
+            if isinstance(obj, type) and issubclass(obj, dict):
+                return self._dict_subclass_schema(obj)
             if self.arbitrary_types:
                 return core_schema.is_instance_schema(obj)
             else:
@@ -476,6 +471,10 @@ class GenerateSchema:
         elif issubclass(origin, typing.Counter):
             # Subclasses of typing.Counter may be handled as subclasses of dict; see note above
             return self._counter_schema(obj)
+        elif issubclass(origin, typing.OrderedDict):
+            from ._std_types_schema import ordered_dict_schema
+
+            return ordered_dict_schema(self, obj)
         elif origin in (typing.Dict, dict):
             return self._dict_schema(obj)
         elif is_typeddict(origin):
@@ -488,11 +487,6 @@ class GenerateSchema:
             return self._mapping_schema(obj)
         elif issubclass(origin, typing.Type):  # type: ignore[arg-type]
             return self._subclass_schema(obj)
-        elif issubclass(origin, typing.OrderedDict):
-            # Subclasses of typing.OrderedDict may be handled as subclasses of dict; see note above
-            from ._std_types_schema import ordered_dict_schema
-
-            return ordered_dict_schema(self, obj)
         elif issubclass(origin, typing.Sequence):
             if origin in {typing.Sequence, collections.abc.Sequence}:
                 return self._sequence_schema(obj)
